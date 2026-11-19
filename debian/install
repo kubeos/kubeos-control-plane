@@ -1,3 +1,4 @@
 payload/usr/bin/*                          usr/bin/
 payload/usr/lib/systemd/system/*.service   usr/lib/systemd/system/
 payload/usr/share/doc/kubeos-control-plane/*   usr/share/doc/kubeos-control-plane/
+payload/usr/lib/systemd/system/multi-user.target.wants/*  usr/lib/systemd/system/multi-user.target.wants/
