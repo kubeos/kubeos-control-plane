@@ -1,3 +1,11 @@
+kubeos-control-plane (1.37.2-6) trixie; urgency=medium
+
+  * Override dir-in-usr-local: /usr/local/bin carries two symlinks to the real binaries in
+    /usr/bin, because the dashboard console calls /usr/local/bin/etcdctl by name. Found by the
+    new CI check.
+
+ -- KubeOS <mail@kubeos.in>  Fri, 20 Nov 2026 02:25:00 +0530
+
 kubeos-control-plane (1.37.2-5) trixie; urgency=medium
 
   * Ship /usr/local/bin/etcd and /usr/local/bin/etcdctl as symlinks to /usr/bin. The

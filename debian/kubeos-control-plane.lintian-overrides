@@ -1,0 +1,6 @@
+
+# /usr/local/bin holds two SYMLINKS (etcd, etcdctl) to the real binaries in /usr/bin, because the
+# dashboard console calls /usr/local/bin/etcdctl by name (console.py, hard-coded path). Shipping
+# them keeps the Snapshot page working on a packaged node; the alternative is to fix console.py to
+# search PATH, which is the cleaner fix and is tracked as an open item.
+kubeos-control-plane: dir-in-usr-local
