@@ -1,3 +1,16 @@
+kubeos-control-plane (1.37.2-5) trixie; urgency=medium
+
+  * Ship /usr/local/bin/etcd and /usr/local/bin/etcdctl as symlinks to /usr/bin. The
+    dashboard's console service decides whether this machine is a control plane with
+    os.path.exists("/usr/local/bin/etcdctl"), so once dpkg owned the binaries in /usr/bin
+    a packaged node answered "this machine is not a control plane" and the Snapshot page
+    refused to take one (measured 2026-11-19: kubeos1 from the old ISO worked, kubeos2
+    from the packaged ISO did not). Debian policy prefers no package to own /usr/local,
+    which is why this is a compatibility shim and not the design: the console should use
+    shutil.which() in its next release.
+
+ -- KubeOS <mail@kubeos.in>  Thu, 19 Nov 2026 21:55:00 +0530
+
 kubeos-control-plane (1.37.2-1kubeos4) trixie; urgency=medium
 
   * dh_installsystemd gets --no-enable only, not --no-start. --no-start also stops the

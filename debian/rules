@@ -28,3 +28,9 @@ override_dh_dwz:
 # unit around a binary replacement is what Debian does, and it is what we want.
 override_dh_installsystemd:
 	dh_installsystemd --no-enable
+
+# Compatibility links in /usr/local/bin. The dashboard's console service decides "is this a
+# control plane?" with a fixed path - /usr/local/bin/etcdctl - and that was where the binaries
+# used to live. dpkg owns them in /usr/bin now, so the packaged node answered "not a control
+# plane" and the Snapshot page refused (measured 2026-11-19, kubeos2 vs kubeos1). Shipping two
+# symlinks keeps every consumer working; the real fix is for the console to look on PATH.
