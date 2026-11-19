@@ -5,3 +5,8 @@
 # search PATH, which is the cleaner fix and is tracked as an open item.
 kubeos-control-plane: dir-in-usr-local
 kubeos-control-plane: file-in-usr-local
+
+# The six binaries are the upstream Go builds (etcd, etcdctl, kube-apiserver, kube-controller-manager,
+# kube-scheduler, kube-proxy): Go binaries are static by construction. KubeOS runs them as host
+# services instead of containers, so shipping them is the point of this package.
+kubeos-control-plane: statically-linked-binary

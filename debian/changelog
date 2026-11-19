@@ -1,3 +1,10 @@
+kubeos-control-plane (1.37.2-8) trixie; urgency=medium
+
+  * Override statically-linked-binary for the six upstream Go binaries. Checked the whole
+    tag list with lintian on the builder instead of discovering one tag per CI run.
+
+ -- KubeOS <mail@kubeos.in>  Fri, 20 Nov 2026 03:10:00 +0530
+
 kubeos-control-plane (1.37.2-7) trixie; urgency=medium
 
   * Complete the override: lintian reports dir-in-usr-local for the directory AND
