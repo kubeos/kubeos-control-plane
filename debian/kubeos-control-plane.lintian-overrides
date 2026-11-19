@@ -4,3 +4,4 @@
 # them keeps the Snapshot page working on a packaged node; the alternative is to fix console.py to
 # search PATH, which is the cleaner fix and is tracked as an open item.
 kubeos-control-plane: dir-in-usr-local
+kubeos-control-plane: file-in-usr-local

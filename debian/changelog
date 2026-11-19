@@ -1,3 +1,10 @@
+kubeos-control-plane (1.37.2-7) trixie; urgency=medium
+
+  * Complete the override: lintian reports dir-in-usr-local for the directory AND
+    file-in-usr-local for each symlink, so both tags are needed.
+
+ -- KubeOS <mail@kubeos.in>  Fri, 20 Nov 2026 03:00:00 +0530
+
 kubeos-control-plane (1.37.2-6) trixie; urgency=medium
 
   * Override dir-in-usr-local: /usr/local/bin carries two symlinks to the real binaries in
