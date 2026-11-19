@@ -34,3 +34,9 @@ override_dh_installsystemd:
 # used to live. dpkg owns them in /usr/bin now, so the packaged node answered "not a control
 # plane" and the Snapshot page refused (measured 2026-11-19, kubeos2 vs kubeos1). Shipping two
 # symlinks keeps every consumer working; the real fix is for the console to look on PATH.
+
+# debhelper treats everything under /usr/local as directories to create and refuses a symlink
+# there ("dh_usrlocal: error: ... /usr/local/bin/etcd is not a directory"). The two links are
+# deliberate - see the note above - so this step is skipped.
+override_dh_usrlocal:
+	@echo "kubeos-control-plane: /usr/local/bin links are intentional, not managed here"

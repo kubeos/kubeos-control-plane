@@ -35,7 +35,17 @@ fetch() {
 }
 
 # --- the Kubernetes binaries: dl.k8s.io publishes '<sha256>  <name>' -----------
+
+# already there and reporting the right version? Then do not download it again: the payload
+# directory survives between builds, and re-fetching 360 MB per rebuild is a waste of a build.
+need() {   # need <path> <version-text>
+    [ -x "$1" ] || return 0
+    if "$1" --version 2>/dev/null | grep -qF "$2"; then return 1; fi
+    return 0
+}
+
 for bin in $BINARIES; do
+    if ! need "$DEST/$bin" "$KUBE_VERSION"; then log "$bin $KUBE_VERSION already present"; continue; fi
     url="https://dl.k8s.io/${KUBE_VERSION}/bin/linux/amd64/${bin}"
     log "fetching $url"
     fetch "$url" "$WORK/$bin" || die "could not download $bin"
@@ -49,6 +59,11 @@ for bin in $BINARIES; do
 done
 
 # --- etcd: the release ships a SHA256SUMS file -------------------------------
+if ! need "$DEST/etcd" "${ETCD_VERSION#v}" && ! need "$DEST/etcdctl" "${ETCD_VERSION#v}"; then
+    log "etcd $ETCD_VERSION already present"
+    log "done"
+    exit 0
+fi
 TARBALL="etcd-${ETCD_VERSION}-linux-amd64.tar.gz"
 BASE="https://github.com/etcd-io/etcd/releases/download/${ETCD_VERSION}"
 log "fetching $BASE/$TARBALL"
