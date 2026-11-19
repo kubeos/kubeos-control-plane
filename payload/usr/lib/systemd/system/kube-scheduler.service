@@ -1,0 +1,27 @@
+# KubeOS: kube-scheduler as a native systemd service.
+#
+# Part of the "no base Pods" design (docs/NATIVE-CONTROL-PLANE.md).
+# Like kube-controller-manager this retries instead of Requires= the apiserver, so a
+# restarted apiserver does not leave the node unable to schedule.
+[Unit]
+Description=KubeOS kube-scheduler
+Documentation=https://kubeos.in/
+ConditionPathExists=/etc/kubernetes/scheduler.conf
+After=kube-apiserver.service network-online.target
+Wants=kube-apiserver.service
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/kube-scheduler \
+    --bind-address=127.0.0.1 \
+    --kubeconfig=/etc/kubernetes/scheduler.conf \
+    --authentication-kubeconfig=/etc/kubernetes/scheduler.conf \
+    --authorization-kubeconfig=/etc/kubernetes/scheduler.conf \
+    --leader-elect=true
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

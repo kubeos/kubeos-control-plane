@@ -1,0 +1,10 @@
+debian/files
+debian/*.substvars
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/kubeos-control-plane/
+payload/usr/bin/kube-*
+payload/usr/bin/etcd*
+*.deb
+*.buildinfo
+*.changes

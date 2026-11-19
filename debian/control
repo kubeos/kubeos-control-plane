@@ -1,0 +1,22 @@
+Source: kubeos-control-plane
+Section: admin
+Priority: optional
+Maintainer: KubeOS <mail@kubeos.in>
+Build-Depends: debhelper-compat (= 13), curl, ca-certificates
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+Homepage: https://kubeos.in/
+
+Package: kubeos-control-plane
+Architecture: amd64
+Depends: ${misc:Depends}, adduser, ca-certificates
+Description: KubeOS control plane: apiserver, controller-manager, scheduler, proxy, etcd
+ The five control-plane binaries and etcd, run as host systemd services instead of
+ static Pods, which is why a freshly booted KubeOS node shows no Pods at all
+ (docs/NATIVE-CONTROL-PLANE.md). kubelet, kubectl and kubeadm are not duplicated here:
+ they come from the pkgs.k8s.io packages and stay in /usr/bin.
+ .
+ No Debian package provides these binaries, so the official release builds are fetched
+ at build time and verified against the checksums upstream publishes. The units carry a
+ ConditionPathExists on the PKI, so an un-initialised or de-clustered machine skips them
+ cleanly instead of crash-looping.

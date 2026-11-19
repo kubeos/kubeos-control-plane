@@ -1,0 +1,37 @@
+# KubeOS: kube-proxy as a native systemd service.
+#
+# Part of the "no base Pods" design (docs/NATIVE-CONTROL-PLANE.md D1/D3): on an
+# installed node kube-proxy is NOT a DaemonSet, so `kubectl get pods -A` stays empty.
+#
+# It needs BOTH files, and they are different things:
+#   /etc/kubernetes/kube-proxy.conf      the kubeconfig (identity system:kube-proxy)
+#   /var/lib/kube-proxy/config.conf      the component config (mode, clusterCIDR, ...)
+# The kubeconfig is generated at first boot by node-setup
+# (`kubeadm init phase kubeconfig kube-proxy`), which is also why the condition below
+# uses it: before that phase has run there is nothing to authenticate with.
+#
+# --hostname-override is not optional: kube-proxy derives the node name it looks up
+# from the hostname, and the Node object is named after the kubelet's
+# nodeRegistration name. Pinning both to the kernel hostname keeps them equal even
+# on a machine whose DNS name differs.
+[Unit]
+Description=KubeOS kube-proxy (service routing)
+Documentation=https://kubeos.in/
+ConditionPathExists=/etc/kubernetes/kube-proxy.conf
+After=network-online.target kube-apiserver.service
+Wants=network-online.target
+Before=kubeos-coredns.service
+
+[Service]
+Type=exec
+ExecStartPre=/bin/sh -c 'test -s /var/lib/kube-proxy/config.conf'
+ExecStart=/usr/bin/kube-proxy \
+    --config=/var/lib/kube-proxy/config.conf \
+    --hostname-override=%H
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

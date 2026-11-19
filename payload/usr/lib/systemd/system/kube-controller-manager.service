@@ -1,0 +1,48 @@
+# KubeOS: kube-controller-manager as a native systemd service.
+#
+# Part of the "no base Pods" design (docs/NATIVE-CONTROL-PLANE.md).
+#
+# --allocate-node-cidrs with --cluster-cidr is what gives the node its podCIDR; the
+# CNI (flanneld, Phase 6) takes each node's slice from there, so POD_CIDR here must
+# be the same range the apiserver and flannel were told about. All three read
+# /etc/kubeos/cluster-network.conf. POD_CIDR/SERVICE_CIDR are written there today;
+# NODE_IP is a Phase 8 requirement on node-setup.
+#
+# This unit is deliberately NOT Requires=kube-apiserver: a restarted apiserver must
+# not take the controllers down with it. It retries instead.
+[Unit]
+Description=KubeOS kube-controller-manager
+Documentation=https://kubeos.in/
+ConditionPathExists=/etc/kubernetes/controller-manager.conf
+After=kube-apiserver.service network-online.target
+Wants=kube-apiserver.service
+
+[Service]
+Type=exec
+EnvironmentFile=/etc/kubeos/cluster-network.conf
+ExecStart=/usr/bin/kube-controller-manager \
+    --bind-address=127.0.0.1 \
+    --allocate-node-cidrs=true \
+    --cluster-cidr=${POD_CIDR} \
+    --node-cidr-mask-size=24 \
+    --cluster-name=kubernetes \
+    --cluster-signing-cert-file=/etc/kubernetes/pki/ca.crt \
+    --cluster-signing-key-file=/etc/kubernetes/pki/ca.key \
+    --controllers=*,bootstrapsigner,tokencleaner \
+    --kubeconfig=/etc/kubernetes/controller-manager.conf \
+    --authentication-kubeconfig=/etc/kubernetes/controller-manager.conf \
+    --authorization-kubeconfig=/etc/kubernetes/controller-manager.conf \
+    --client-ca-file=/etc/kubernetes/pki/ca.crt \
+    --requestheader-client-ca-file=/etc/kubernetes/pki/front-proxy-ca.crt \
+    --root-ca-file=/etc/kubernetes/pki/ca.crt \
+    --service-account-private-key-file=/etc/kubernetes/pki/sa.key \
+    --service-cluster-ip-range=${SERVICE_CIDR} \
+    --use-service-account-credentials=true \
+    --leader-elect=true
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

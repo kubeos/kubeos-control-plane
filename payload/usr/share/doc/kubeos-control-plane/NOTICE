@@ -1,0 +1,27 @@
+KubeOS control-plane binaries
+=============================
+
+/usr/local/bin contains these unmodified upstream release binaries, vendored at
+build time by config/hooks/normal/9025-vendor-control-plane-binaries.hook.chroot:
+
+  kube-apiserver            Kubernetes, https://dl.k8s.io/vX.Y.Z/bin/linux/amd64/
+  kube-controller-manager   Kubernetes, same source
+  kube-scheduler            Kubernetes, same source
+  kube-proxy                Kubernetes, same source
+  etcd                      etcd, https://github.com/etcd-io/etcd/releases/
+  etcdctl                   etcd, same source
+
+kubelet, kubectl and kubeadm are NOT vendored here: they are installed from the
+pkgs.k8s.io apt repository and live in /usr/bin.
+
+Both projects are licensed under the Apache License, Version 2.0. The licence texts
+ship next to this file as LICENSE.kubernetes and LICENSE.etcd; they are identical
+except for the copyright line in the appendix, which is why both are kept verbatim
+instead of one being copied over the other.
+
+The version of the Kubernetes binaries is read from the installed kubelet at build
+time and the etcd version from the tag kubeadm pins, so the whole control plane is
+one consistent release.
+
+KubeOS ships these binaries unmodified. KubeOS is not affiliated with, endorsed by,
+or sponsored by the Kubernetes project, the CNCF, or the etcd project.

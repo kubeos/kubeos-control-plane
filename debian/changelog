@@ -1,0 +1,8 @@
+kubeos-control-plane (1.37.2-1kubeos1) trixie; urgency=medium
+
+  * Initial packaging: kube-apiserver, kube-controller-manager, kube-scheduler and
+    kube-proxy at v1.37.2 (the version the kubelet package carries) plus etcd and
+    etcdctl at the tag kubeadm pins, with their five units and the Apache-2.0 notices
+    build hook 9025 used to install into /usr/local/bin.
+
+ -- KubeOS <mail@kubeos.in>  Thu, 19 Nov 2026 10:05:00 +0530

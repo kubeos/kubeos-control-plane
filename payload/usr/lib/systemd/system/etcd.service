@@ -1,0 +1,52 @@
+# KubeOS: etcd, the Kubernetes state store, as a native systemd service.
+#
+# Part of the "no base Pods" design (docs/NATIVE-CONTROL-PLANE.md): on an installed
+# node etcd is NOT a static Pod, so `kubectl get pods -A` stays empty.
+#
+# The certificates and the node address do not exist until first boot has run
+# /usr/bin/node-setup, so ConditionPathExists keeps this unit silently
+# skipped - not failed - until then. node-setup starts it explicitly once
+# the PKI is on disk; afterwards the enabled state brings it up on every boot.
+[Unit]
+Description=KubeOS etcd (cluster state store)
+Documentation=https://kubeos.in/
+ConditionPathExists=/etc/kubernetes/pki/etcd/server.crt
+After=network-online.target
+Wants=network-online.target
+Before=kube-apiserver.service
+
+[Service]
+Type=notify
+# NODE_IP, POD_CIDR and SERVICE_CIDR come from this one file, shared by all
+# control-plane units so they cannot disagree about the addresses the node was
+# built with. POD_CIDR/SERVICE_CIDR are already written there today; NODE_IP is a
+# Phase 8 requirement on node-setup (docs/NATIVE-CONTROL-PLANE.md), which
+# is also the phase that enables these units - do not enable them before it.
+EnvironmentFile=/etc/kubeos/cluster-network.conf
+StateDirectory=etcd
+StateDirectoryMode=0700
+ExecStart=/usr/bin/etcd \
+    --name=kubeos \
+    --data-dir=/var/lib/etcd \
+    --listen-client-urls=https://127.0.0.1:2379,https://${NODE_IP}:2379 \
+    --advertise-client-urls=https://${NODE_IP}:2379 \
+    --listen-peer-urls=https://${NODE_IP}:2380 \
+    --initial-advertise-peer-urls=https://${NODE_IP}:2380 \
+    --initial-cluster=kubeos=https://${NODE_IP}:2380 \
+    --initial-cluster-state=new \
+    --initial-cluster-token=kubeos-cluster \
+    --cert-file=/etc/kubernetes/pki/etcd/server.crt \
+    --key-file=/etc/kubernetes/pki/etcd/server.key \
+    --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt \
+    --client-cert-auth=true \
+    --peer-cert-file=/etc/kubernetes/pki/etcd/peer.crt \
+    --peer-key-file=/etc/kubernetes/pki/etcd/peer.key \
+    --peer-trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt \
+    --peer-client-cert-auth=true
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
