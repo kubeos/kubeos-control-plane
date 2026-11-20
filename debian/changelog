@@ -1,3 +1,32 @@
+kubeos-control-plane (1.37.2-11) trixie; urgency=medium
+
+  * Take an etcd snapshot every day at 03:00 and keep the newest 7. Until now a snapshot existed
+    only if somebody pressed the dashboard button, so a mistake at 09:00 with the last backup a
+    week old meant losing the difference - an appliance has to do this itself. New
+    kubeos-etcd-backup.service (oneshot, ConditionPathExists on the etcd PKI so a worker is
+    skipped and not "failed") + kubeos-etcd-backup.timer (Persistent=true, so a node that was
+    switched off at 03:00 still backs up at the next boot), and postinst starts the timer on a
+    running node because a shipped .wants link only takes effect at the next boot.
+  * The script writes to a .part file and VERIFIES it with `etcdctl snapshot status` before it
+    replaces anything, and retention only ever prunes the files it created itself
+    (kubeos-etcd-<hostname>-*.db) - a snapshot an operator took from the dashboard is never
+    deleted by the timer.
+
+ -- KubeOS <mail@kubeos.in>  Fri, 20 Nov 2026 21:00:00 +0530
+
+kubeos-control-plane (1.37.2-10) trixie; urgency=medium
+
+  * REVERT --anonymous-auth=false. It broke `kubeadm join`: token discovery reads
+    kube-public/configmaps/cluster-info ANONYMOUSLY, so with anonymous auth off every join died at
+    preflight with "couldn't validate the identity of the API Server: failed to request the
+    cluster-info ConfigMap: Unauthorized". Measured 2026-11-20 on a fresh 3-node install: both
+    workers failed to join while the control plane itself looked perfectly healthy.
+    The anonymous surface is that one ConfigMap, whose contents (cluster CA certificate and the
+    API address) are public by design, so keeping anonymous auth on costs nothing; SECURITY-REVIEW
+    S5 is downgraded to "accepted by design" with the reason written down.
+
+ -- KubeOS <mail@kubeos.in>  Fri, 20 Nov 2026 07:20:00 +0530
+
 kubeos-control-plane (1.37.2-9) trixie; urgency=medium
 
   * kube-apiserver: --anonymous-auth=false. Anonymous requests were answered with 403 (RBAC

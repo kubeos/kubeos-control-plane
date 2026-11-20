@@ -1,0 +1,18 @@
+# KubeOS: daily etcd snapshot at 03:00.
+#
+# WHY THAT HOUR: the quietest time for a cluster nobody is using, and early enough that a working
+# day's mistake is always covered by a backup from the same night.
+# Persistent=true: an appliance that was switched off at 03:00 still gets its backup at the next
+# boot, instead of silently skipping a day.
+[Unit]
+Description=KubeOS etcd snapshot every day at 03:00
+Documentation=https://kubeos.in/
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+AccuracySec=1min
+Unit=kubeos-etcd-backup.service
+
+[Install]
+WantedBy=timers.target

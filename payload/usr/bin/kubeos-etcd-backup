@@ -1,0 +1,64 @@
+#!/bin/sh
+# WHEN   daily at 03:00 by kubeos-etcd-backup.timer, on the CONTROL PLANE only.
+# WHY    The cluster's entire state lives in etcd. Until now a snapshot existed only if a human
+#        pressed the dashboard button, so a mistake at 09:00 with no backup since last Tuesday
+#        meant losing everything after it. An appliance has to do this for itself.
+#        The unit that starts this carries ConditionPathExists=/etc/kubernetes/pki/etcd/server.crt,
+#        so a worker is skipped without noise, and the script double-checks the same thing: a
+#        worker must never create an empty file that looks like a backup.
+# SAFE   Re-runnable, and it never deletes a good snapshot to make room for a bad one: the new
+#        dump is written to a .part file, VERIFIED with `etcdctl snapshot status`, and only then
+#        renamed into place. Retention touches ONLY the files this node created on a schedule
+#        (prefix kubeos-etcd-<hostname>-); a snapshot an operator took from the dashboard stays
+#        until they delete it.
+set -eu
+
+SNAPSHOT_DIR=/var/lib/kubeos/etcd-snapshots
+ETCDCTL=/usr/local/bin/etcdctl
+ETCD_PKI=/etc/kubernetes/pki/etcd
+ETCD_ENDPOINT=https://127.0.0.1:2379
+KEEP=7
+PREFIX="kubeos-etcd-$(hostname)-"
+
+log() { printf 'kubeos-etcd-backup: %s\n' "$*"; }
+
+if [ ! -x "$ETCDCTL" ] || [ ! -f "$ETCD_PKI/server.crt" ]; then
+    log "no etcd on this machine (not a control plane) - nothing to back up"
+    exit 0
+fi
+
+install -d -m 0700 "$SNAPSHOT_DIR"
+name="${PREFIX}$(date -u +%Y%m%d-%H%M%S).db"
+target="$SNAPSHOT_DIR/$name"
+partial="$SNAPSHOT_DIR/.$name.part"
+trap 'rm -f "$partial"' EXIT INT TERM
+
+# api=3 is the only API etcdctl 3.x offers; the endpoint is loopback with the cluster's own PKI.
+if ! ETCDCTL_API=3 "$ETCDCTL" \
+        --endpoints="$ETCD_ENDPOINT" \
+        --cacert="$ETCD_PKI/ca.crt" --cert="$ETCD_PKI/server.crt" --key="$ETCD_PKI/server.key" \
+        snapshot save "$partial" >/dev/null 2>&1; then
+    log "ERROR: etcdctl snapshot save failed (is etcd running?) - keeping the existing backups"
+    exit 1
+fi
+
+# A file that does not verify is not a backup. Check before it can replace anything.
+if ! ETCDCTL_API=3 "$ETCDCTL" snapshot status "$partial" >/dev/null 2>&1; then
+    log "ERROR: the snapshot did not verify - discarded, existing backups untouched"
+    exit 1
+fi
+
+chmod 0600 "$partial"
+mv "$partial" "$target"
+trap - EXIT INT TERM
+log "wrote $(basename "$target") ($(du -h "$target" | cut -f1)), revision $(ETCDCTL_API=3 "$ETCDCTL" snapshot status "$target" 2>/dev/null | tail -1 | awk -F, '{print $2}' | tr -d ' ')"
+
+# Retention: newest KEEP of OUR files; everything else is left alone on purpose.
+count=$(ls -1t "$SNAPSHOT_DIR/$PREFIX"*.db 2>/dev/null | wc -l)
+if [ "$count" -gt "$KEEP" ]; then
+    ls -1t "$SNAPSHOT_DIR/$PREFIX"*.db 2>/dev/null | tail -n "+$((KEEP + 1))" | while read -r old; do
+        rm -f "$old"
+        log "pruned $(basename "$old") (keeping the newest $KEEP)"
+    done
+fi
+exit 0

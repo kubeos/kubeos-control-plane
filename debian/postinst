@@ -1,0 +1,23 @@
+#!/bin/sh
+# KubeOS control plane, postinst: start the daily etcd backup on a running node.
+#
+# WHY   A .wants link shipped in the package only starts a timer when timers.target is next
+#       activated - i.e. at the next boot - so a node upgraded today would have no scheduled
+#       backup until somebody rebooted it (measured on the sweep timer, 2026-11-20).
+# SAFE  Re-runnable and never fatal: skipped where systemd is not running (the live-build
+#       chroot), and a worker simply has the unit conditioned away.
+set -e
+
+# debhelper inserts its generated snippets here; it must sit before this script's own exits.
+#DEBHELPER#
+
+case "${1:-}" in
+    configure) : ;;
+    *) exit 0 ;;
+esac
+
+if [ -d /run/systemd/system ]; then
+    systemctl daemon-reload >/dev/null 2>&1 || true
+    systemctl start kubeos-etcd-backup.timer >/dev/null 2>&1 || true
+fi
+exit 0

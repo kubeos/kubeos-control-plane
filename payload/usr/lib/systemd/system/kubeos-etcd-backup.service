@@ -1,0 +1,20 @@
+# KubeOS: take one etcd snapshot. Started by kubeos-etcd-backup.timer, or by hand.
+#
+# WHY A ONESHOT UNIT AND NOT A DASHBOARD BUTTON: a backup that depends on somebody remembering
+# is not a backup. The dashboard keeps its manual button (it is the way to take one before a
+# risky change), and this makes the daily one happen whether or not anyone is watching.
+#
+# ConditionPathExists keeps it honest on a worker: only a control plane has an etcd PKI, so on
+# every other node the unit is skipped, inactive, and not "failed".
+[Unit]
+Description=KubeOS etcd snapshot (daily, kept in /var/lib/kubeos/etcd-snapshots)
+Documentation=https://kubeos.in/
+ConditionPathExists=/etc/kubernetes/pki/etcd/server.crt
+After=etcd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/kubeos-etcd-backup
+# The whole point is that it either works or says so: a silent failure here is a cluster with no
+# backup and nobody aware. Failed runs therefore stay failed until someone looks.
+TimeoutStartSec=300
